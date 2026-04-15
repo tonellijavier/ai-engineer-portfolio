@@ -1,0 +1,16 @@
+# API keys y variables de entorno — NUNCA subir
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
