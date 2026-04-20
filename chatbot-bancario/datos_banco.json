@@ -1,0 +1,81 @@
+{
+  "cliente": {
+    "nombre": "Javier",
+    "dni": "12345678",
+    "saldo": 90000.0,
+    "productos": [
+      "Caja de ahorro en pesos",
+      "Tarjeta Visa débito",
+      "Préstamo personal activo"
+    ]
+  },
+  "contactos": [
+    {
+      "nombre": "Juan Pérez",
+      "cbu": "0000003100025786490015",
+      "alias": "juan.perez"
+    },
+    {
+      "nombre": "María García",
+      "cbu": "0000003100025786490022",
+      "alias": "maria.garcia"
+    },
+    {
+      "nombre": "Carlos López",
+      "cbu": "0000003100025786490033",
+      "alias": "carlos.lopez"
+    }
+  ],
+  "movimientos": [
+    {
+      "fecha": "2025-03-01",
+      "descripcion": "Netflix",
+      "monto": -1500.0
+    },
+    {
+      "fecha": "2025-03-01",
+      "descripcion": "Supermercado Dia",
+      "monto": -8500.0
+    },
+    {
+      "fecha": "2025-03-02",
+      "descripcion": "Netflix",
+      "monto": -1500.0
+    },
+    {
+      "fecha": "2025-03-03",
+      "descripcion": "Sueldo marzo",
+      "monto": 120000.0
+    },
+    {
+      "fecha": "2025-03-05",
+      "descripcion": "OSDE",
+      "monto": -12000.0
+    },
+    {
+      "fecha": "2025-03-07",
+      "descripcion": "YPF combustible",
+      "monto": -6000.0
+    },
+    {
+      "fecha": "2025-03-10",
+      "descripcion": "Transferencia a Juan Pérez",
+      "monto": -5000.0
+    },
+    {
+      "fecha": "2026-04-18",
+      "descripcion": "Transferencia a María García",
+      "monto": -50000.0
+    },
+    {
+      "fecha": "2026-04-18",
+      "descripcion": "Transferencia a Carlos López",
+      "monto": -4000.0
+    },
+    {
+      "fecha": "2026-04-18",
+      "descripcion": "Transferencia a Juan Pérez",
+      "monto": -6000.0
+    }
+  ]
+}
