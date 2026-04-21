@@ -62,6 +62,8 @@ def nodo_conversacion(estado: dict) -> dict:
         }
 
     # Conversación normal — el LLM responde con el historial completo
+    # El historial crece con cada turno — más tokens, más latencia.
+    # Se puede limitar con estado["messages"][-10:] si es necesario.
     system_prompt = construir_system_prompt(datos)
     respuesta = llm.invoke([
         SystemMessage(content=system_prompt),
@@ -192,8 +194,10 @@ def nodo_confirmacion(estado: dict) -> dict:
                     for p in ["no", "cancelar", "cancelá", "nope"])
 
     if confirmado:
-        # Señal para el grafo — ir al nodo de ejecución
-        return {"esperando": "ejecutar"}
+        # Llamamos directamente a nodo_ejecutar en lugar de cambiar el estado
+        # y esperar otro turno. Así evitamos el turno extra que causaba el doble "si".
+        # nodo_confirmacion decide, nodo_ejecutar actúa — en el mismo turno.
+        return nodo_ejecutar(estado)
 
     elif cancelado:
         return {

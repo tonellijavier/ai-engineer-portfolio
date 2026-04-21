@@ -72,6 +72,20 @@ INSERT INTO movimientos (dni_cliente, fecha, descripcion, monto) VALUES (...)
 
 ---
 
+## Observabilidad — LangSmith
+
+El sistema está instrumentado con LangSmith para trazabilidad completa de cada llamada al LLM.
+
+Lo que se puede ver en cada traza:
+- Qué prompt exacto se mandó al modelo
+- Cuántos tokens consumió
+- Cuánto tardó en responder
+- Qué respondió
+
+Lo que **no** genera trazas: el flujo de transferencia. Como el código determinista no llama al LLM, las operaciones financieras no aparecen en LangSmith — evidencia directa de que el modelo no participa en ninguna operación sensible.
+
+---
+
 ## Logs de sesión
 
 Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones separadas:
@@ -90,13 +104,15 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 - **PostgreSQL real** — saldo y movimientos persisten en Neon entre sesiones
 - **Detección de duplicados** — compara la operación con el historial de movimientos
 - **Logs de auditoría separados** del log de conversación, como en producción real
+- **LangSmith** — trazabilidad completa de cada llamada al LLM para monitoreo y debugging
 
 ---
 
 ## Pendientes documentados
 
-- [ ] Refactorizar el flujo de transferencia con nodos separados en LangGraph — cada paso sería un nodo distinto con edges condicionales
-- [ ] Agregar autenticación — ahora el DNI está hardcodeado, en producción vendría del login
+- [x] Refactorizar el flujo de transferencia con nodos separados en LangGraph ← implementado
+- [x] Migrar de JSON a PostgreSQL ← implementado
+- [ ] Agregar autenticación — el DNI está hardcodeado, en producción vendría del login
 
 ---
 
@@ -106,6 +122,7 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 - **LangChain + Groq** — modelo `llama-3.3-70b-versatile` para el modo conversación
 - **Neon (PostgreSQL)** — base de datos serverless para persistencia real
 - **psycopg2** — driver de Python para PostgreSQL
+- **LangSmith** — observabilidad y trazabilidad de las llamadas al LLM
 - **Python puro** — flujo de transferencia, logs, validaciones
 
 ---
@@ -119,11 +136,12 @@ pip install langgraph langchain-groq langchain-core python-dotenv psycopg2-binar
 Creá un archivo `.env`:
 
 ```
-GROQ_API_KEY=tu-key        # gratis en console.groq.com
-DATABASE_URL=postgresql://usuario:password@host/neondb?sslmode=require
+GROQ_API_KEY=tu-key              # gratis en console.groq.com
+DATABASE_URL=postgresql://...    # console.neon.tech → Connect → Connection string
+LANGCHAIN_API_KEY=tu-key         # gratis en smith.langchain.com
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=chatbot-bancario
 ```
-
-Para obtener el `DATABASE_URL`: console.neon.tech → tu proyecto → Connect → Connection string.
 
 ---
 
@@ -134,7 +152,7 @@ Para obtener el `DATABASE_URL`: console.neon.tech → tu proyecto → Connect �
 python setup_db.py
 
 # Después — corré el chatbot
-python chatbot.py
+python main.py
 ```
 
 Escribí `salir` para terminar la sesión y guardar el log.
