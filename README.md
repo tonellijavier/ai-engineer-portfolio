@@ -57,17 +57,30 @@ Agente que lee un extracto bancario en PDF, analiza los gastos, los compara con 
 
 ---
 
+### 6. Chatbot Bancario
+**Carpeta:** `chatbot-bancario/`
+
+Simulador de chatbot bancario con memoria conversacional y base de datos real. El cliente puede consultar saldo, ver movimientos y realizar transferencias.
+
+**Decisión de diseño clave:** el chatbot tiene dos modos completamente separados. El LLM maneja la conversación libre. Para transferencias, el código toma el control — sin LLM. En operaciones financieras se necesita código determinista, no probabilístico. Las llamadas al LLM se monitorean con LangSmith — las transferencias no generan trazas porque el modelo no participa.
+
+**Conceptos aplicados:** system prompt dinámico, message history con LangGraph, código determinista para operaciones sensibles, PostgreSQL real con Neon, detección de duplicados, logs de auditoría separados del log de conversación, observabilidad con LangSmith.
+
+---
+
 ## Stack
 
 | Framework | Proyectos |
 |---|---|
 | CrewAI + LiteLLM | Proyectos 1, 2 y 3 |
 | LangChain + Chroma | Proyecto 4 |
-| LangGraph | Proyecto 5 |
+| LangGraph | Proyectos 5 y 6 |
+| Neon (PostgreSQL) | Proyecto 6 |
+| LangSmith | Proyecto 6 |
 
 **Modelos:** Groq (`llama-3.3-70b-versatile`) — compatible con Claude (Anthropic) y otros via LiteLLM
 
-**Tools:** SerperDevTool (búsqueda web), pdfplumber (PDFs), HuggingFace Embeddings, Gmail API
+**Tools:** SerperDevTool (búsqueda web), pdfplumber (PDFs), HuggingFace Embeddings, Gmail API, psycopg2 (PostgreSQL)
 
 ---
 
@@ -90,10 +103,19 @@ venv\Scripts\activate
 pip install langgraph langchain-groq langchain-community langchain-core pdfplumber python-dotenv google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
 ```
 
+**Proyecto 6 (Chatbot Bancario):**
+```bash
+pip install langgraph langchain-groq langchain-core python-dotenv psycopg2-binary
+```
+
 Variables de entorno necesarias en `.env`:
 ```
-GROQ_API_KEY=tu-key        # gratis en console.groq.com
-SERPER_API_KEY=tu-key      # gratis en serper.dev (proyectos 3 y 5)
+GROQ_API_KEY=tu-key              # gratis en console.groq.com
+SERPER_API_KEY=tu-key            # gratis en serper.dev (proyectos 3 y 5)
+DATABASE_URL=postgresql://...    # gratis en console.neon.tech (proyecto 6)
+LANGCHAIN_API_KEY=tu-key         # gratis en smith.langchain.com (proyecto 6)
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=chatbot-bancario
 ```
 
 ---
@@ -127,4 +149,11 @@ cd agente-gastos-gmail
 venv\Scripts\activate
 python test_gmail.py    # solo la primera vez — autentica Gmail
 python agente_gastos.py
+```
+
+**Proyecto 6**
+```bash
+cd chatbot-bancario
+python setup_db.py     # solo la primera vez — crea las tablas en Neon
+python main.py
 ```
