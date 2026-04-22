@@ -1,6 +1,8 @@
-# Chatbot Bancario — LangGraph + Groq + Neon (PostgreSQL)
+# Chatbot Bancario — LangGraph + Groq + Neon (PostgreSQL) + FastAPI
 
 Simulador de chatbot bancario con memoria conversacional y base de datos real. El cliente puede consultar saldo, ver movimientos y realizar transferencias. Los datos persisten en PostgreSQL (Neon) entre sesiones.
+
+Expuesto como API REST con FastAPI — cualquier frontend puede consumirlo sin saber nada de Python, LangGraph ni Groq.
 
 ---
 
@@ -47,6 +49,55 @@ En ningún paso de este flujo interviene el LLM.
 
 ---
 
+## API REST — FastAPI
+
+El chatbot está expuesto como API REST. Cualquier frontend — web, móvil, WhatsApp — puede consumirlo sin saber nada de Python, LangGraph ni Groq.
+
+### Endpoints
+
+```
+POST /sesion/nueva          → crea una sesión nueva, devuelve sesion_id
+POST /chat                  → envía un mensaje, devuelve respuesta en JSON
+GET  /sesion/{sesion_id}    → devuelve el estado actual de la sesión
+DELETE /sesion/{sesion_id}  → cierra la sesión y devuelve el log de operaciones
+```
+
+### Ejemplo de conversación via API
+
+```bash
+# 1. Crear sesión
+POST /sesion/nueva
+→ {"sesion_id": "abc123", "esperando": "", ...}
+
+# 2. Consultar saldo
+POST /chat
+Body: {"sesion_id": "abc123", "mensaje": "cuánto tengo?"}
+→ {"respuesta": "Tu saldo es $92.000", "esperando": ""}
+
+# 3. Iniciar transferencia
+POST /chat
+Body: {"sesion_id": "abc123", "mensaje": "quiero transferir"}
+→ {"respuesta": "¿A quién?", "esperando": "destinatario"}
+
+# 4. El frontend lee 'esperando' y adapta su interfaz
+if esperando == "destinatario" → mostrar lista de contactos
+if esperando == "monto"        → mostrar input numérico
+if esperando == "confirmacion" → mostrar botones Confirmar / Cancelar
+```
+
+El campo `esperando` le dice al frontend en qué paso del flujo está — sin parsear el texto de la respuesta.
+
+### Documentación automática
+
+FastAPI genera una interfaz interactiva en `/docs` para probar todos los endpoints:
+
+```bash
+uvicorn main_api:app --reload
+# Abrí http://localhost:8000/docs
+```
+
+---
+
 ## Base de datos — Neon (PostgreSQL)
 
 Tres tablas:
@@ -76,13 +127,9 @@ INSERT INTO movimientos (dni_cliente, fecha, descripcion, monto) VALUES (...)
 
 El sistema está instrumentado con LangSmith para trazabilidad completa de cada llamada al LLM.
 
-Lo que se puede ver en cada traza:
-- Qué prompt exacto se mandó al modelo
-- Cuántos tokens consumió
-- Cuánto tardó en responder
-- Qué respondió
+Lo que se puede ver en cada traza: qué prompt se mandó, cuántos tokens consumió, cuánto tardó, qué respondió.
 
-Lo que **no** genera trazas: el flujo de transferencia. Como el código determinista no llama al LLM, las operaciones financieras no aparecen en LangSmith — evidencia directa de que el modelo no participa en ninguna operación sensible.
+Lo que **no** genera trazas: el flujo de transferencia. El código determinista no llama al LLM — las operaciones financieras no aparecen en LangSmith. Evidencia directa de que el modelo no participa en ninguna operación sensible.
 
 ---
 
@@ -104,7 +151,8 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 - **PostgreSQL real** — saldo y movimientos persisten en Neon entre sesiones
 - **Detección de duplicados** — compara la operación con el historial de movimientos
 - **Logs de auditoría separados** del log de conversación, como en producción real
-- **LangSmith** — trazabilidad completa de cada llamada al LLM para monitoreo y debugging
+- **LangSmith** — trazabilidad completa de cada llamada al LLM
+- **FastAPI** — API REST con documentación automática, validación de datos con Pydantic y manejo de sesiones múltiples simultáneas
 
 ---
 
@@ -112,7 +160,9 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 
 - [x] Refactorizar el flujo de transferencia con nodos separados en LangGraph ← implementado
 - [x] Migrar de JSON a PostgreSQL ← implementado
+- [x] Exponer como API REST con FastAPI ← implementado
 - [ ] Agregar autenticación — el DNI está hardcodeado, en producción vendría del login
+- [ ] Persistir el estado de sesiones en Redis — hoy vive en memoria del proceso
 
 ---
 
@@ -122,6 +172,7 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 - **LangChain + Groq** — modelo `llama-3.3-70b-versatile` para el modo conversación
 - **Neon (PostgreSQL)** — base de datos serverless para persistencia real
 - **psycopg2** — driver de Python para PostgreSQL
+- **FastAPI + uvicorn** — API REST con documentación automática
 - **LangSmith** — observabilidad y trazabilidad de las llamadas al LLM
 - **Python puro** — flujo de transferencia, logs, validaciones
 
@@ -130,7 +181,7 @@ Al cerrar la sesión se genera un archivo `sesion_FECHA.json` con dos secciones 
 ## Setup
 
 ```bash
-pip install langgraph langchain-groq langchain-core python-dotenv psycopg2-binary
+pip install langgraph langchain-groq langchain-core python-dotenv psycopg2-binary fastapi uvicorn
 ```
 
 Creá un archivo `.env`:
@@ -151,8 +202,10 @@ LANGCHAIN_PROJECT=chatbot-bancario
 # Solo la primera vez — crea las tablas y carga los datos iniciales
 python setup_db.py
 
-# Después — corré el chatbot
+# Chatbot en terminal
 python main.py
-```
 
-Escribí `salir` para terminar la sesión y guardar el log.
+# API REST
+uvicorn main_api:app --reload
+# Documentación: http://localhost:8000/docs
+```
